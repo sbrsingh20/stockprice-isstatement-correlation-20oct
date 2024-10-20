@@ -47,7 +47,7 @@ def get_stock_details(stock_symbol, event_type, method):
         st.write(f"### Projected Changes Based on Expected {event_type}")
         st.dataframe(projections)
 
-        # Additional interpretations based on conditions
+        # Interpretations based on conditions
         if event_type == 'Inflation':
             interpret_inflation_data(event_details)
         else:
@@ -121,7 +121,7 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
         else:  # Simple
             price_change = latest_close_price * (expected_rate / 100)
             projected_price = latest_close_price + price_change
-            change = expected_rate
+            change = price_change
             explanation = "Simple calculation uses the expected rate directly."
 
         new_row = pd.DataFrame([{
@@ -148,7 +148,7 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
                     change = projected_value - current_value
                 else:  # Simple
                     projected_value = current_value * (1 + expected_rate / 100)
-                    change = expected_rate
+                    change = projected_value - current_value
 
                 new_row = pd.DataFrame([{
                     'Parameter': column,
@@ -159,7 +159,7 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
                 projections = pd.concat([projections, new_row], ignore_index=True)
 
                 # Correlation evaluation
-                correlation_score = event_details.get(column, None)  # Adjust based on your data
+                correlation_score = event_details.get(column, None)  # Adjust based on your data structure
                 if correlation_score is not None:
                     interpretation = correlation_interpretation(correlation_score)
                     projections = pd.concat([projections, pd.DataFrame([{
@@ -196,7 +196,7 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
                     'Parameter': col,
                     'Current Value': current_value,
                     'Projected Value': projected_value,
-                    'Change': expected_rate
+                    'Change': projected_value - current_value
                 }])
                 projections = pd.concat([projections, new_row], ignore_index=True)
 
