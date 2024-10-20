@@ -47,12 +47,9 @@ def get_stock_details(stock_symbol, event_type, method):
         st.write(f"### Projected Changes Based on Expected {event_type}")
         st.dataframe(projections)
 
-        # Interpretations based on conditions
-        if event_type == 'Inflation':
-            interpret_inflation_data(event_details)
-        else:
-            interpret_interest_rate_data(event_details)
-
+        # Interpretations
+        interpret_inflation_data(event_details)
+        interpret_interest_rate_data(event_details)
         interpret_income_data(income_details)
     else:
         st.warning('Stock symbol not found in the data. Please check the symbol and try again.')
@@ -79,46 +76,44 @@ def interpret_interest_rate_data(details):
     else:
         st.warning("Event Coefficient not found in interest rate details.")
 
-# Function to interpret income data
+# Function to interpret income data based on correlation
 def interpret_income_data(details):
     st.write("### Interpretation of Income Statement Data")
     
-    metrics = {
-        'Total Revenue/Income': "Government initiatives spur growth. Increased consumer spending drives revenue. Market saturation limits revenue growth.",
-        'Total Operating Expense': "Efficient cost management aligns with growth. Inflation impacts costs but is manageable.",
-        'Operating Income/Profit': "High correlation indicates robust margins. Growth strategies enhance profitability.",
-        'EBITDA': "Strong operational efficiency. Positive cash flow trends support growth.",
-        'EBIT': "Reflects operational excellence. Investment in innovation boosts EBIT.",
-        'Income/Profit Before Tax': "Tax incentives and growth correlate. Profitability rises with economic conditions.",
-        'Net Income From Continuing Operation': "Sustained growth reflects stability. Positive shifts in economic policies boost net income.",
-        'Net Income': "Economic reforms boost profitability. Strong demand fuels net income growth.",
-        'Net Income Applicable to Common Share': "High returns drive investor confidence. Shareholder value grows with profitability.",
-        'EPS (Earning Per Share)': "Strong EPS growth attracts investors. Moderate growth signals a healthy business."
+    correlation_ranges = {
+        "Very Good (0.80 - 1.00)": "Indicates a strong positive relationship. Economic events significantly influence these income items.",
+        "Good (0.60 - 0.79)": "Reflects a moderate to strong correlation. Economic growth and consumption trends impact revenue positively.",
+        "Neutral (0.40 - 0.59)": "Shows a moderate correlation. Income items are somewhat influenced by economic events, but other factors may play a larger role.",
+        "Bad (0.20 - 0.39)": "Indicates a weak correlation. Economic events have limited impact on these income items.",
+        "Very Bad (0.00 - 0.19)": "Shows little to no correlation. Economic events do not significantly affect income items."
     }
 
-    interpretations = []
+    metrics = {
+        "Total Revenue/Income": "Government initiatives spur growth.",
+        "Total Operating Expense": "Efficient cost management aligns with growth.",
+        "Operating Income/Profit": "High correlation indicates robust margins.",
+        "EBITDA": "Strong operational efficiency.",
+        "EBIT": "Reflects operational excellence.",
+        "Income/Profit Before Tax": "Tax incentives and growth correlate.",
+        "Net Income From Continuing Operation": "Sustained growth reflects stability.",
+        "Net Income": "Economic reforms boost profitability.",
+        "Net Income Applicable to Common Share": "High returns drive investor confidence.",
+        "EPS (Earning Per Share)": "Strong EPS growth attracts investors."
+    }
 
-    for metric, interpretation in metrics.items():
+    for metric, description in metrics.items():
         if metric in details.index:
-            correlation_value = pd.to_numeric(details[metric], errors='coerce')
-            if pd.notna(correlation_value):
-                if 0.80 <= correlation_value <= 1.00:
-                    interpretations.append(f"**{metric}:** Very Good - {interpretation}")
-                elif 0.60 <= correlation_value < 0.80:
-                    interpretations.append(f"**{metric}:** Good - {interpretation}")
-                elif 0.40 <= correlation_value < 0.60:
-                    interpretations.append(f"**{metric}:** Neutral - {interpretation}")
-                elif 0.20 <= correlation_value < 0.40:
-                    interpretations.append(f"**{metric}:** Bad - {interpretation}")
-                elif 0.00 <= correlation_value < 0.20:
-                    interpretations.append(f"**{metric}:** Very Bad - {interpretation}")
-
-    # Display all interpretations
-    if interpretations:
-        for interpretation in interpretations:
-            st.write(interpretation)
-    else:
-        st.warning("No specific interpretations found for income statement data.")
+            correlation_value = details[metric]
+            if correlation_value >= 0.80:
+                st.write(f"**{metric}:** {description} ({correlation_ranges['Very Good (0.80 - 1.00)']})")
+            elif correlation_value >= 0.60:
+                st.write(f"**{metric}:** {description} ({correlation_ranges['Good (0.60 - 0.79)']})")
+            elif correlation_value >= 0.40:
+                st.write(f"**{metric}:** {description} ({correlation_ranges['Neutral (0.40 - 0.59)']})")
+            elif correlation_value >= 0.20:
+                st.write(f"**{metric}:** {description} ({correlation_ranges['Bad (0.20 - 0.39)']})")
+            else:
+                st.write(f"**{metric}:** {description} ({correlation_ranges['Very Bad (0.00 - 0.19)']})")
 
 # Function to generate projections based on expected rate and calculation method
 def generate_projections(event_details, income_details, expected_rate, event_type, method):
@@ -137,7 +132,7 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
         else:  # Simple
             price_change = latest_close_price * (expected_rate / 100)
             projected_price = latest_close_price + price_change
-            change = price_change
+            change = expected_rate
             explanation = "Simple calculation uses the expected rate directly."
 
         new_row = pd.DataFrame([{
@@ -149,6 +144,30 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
         projections = pd.concat([projections, new_row], ignore_index=True)
     else:
         st.warning("Stock Price data not available in event details.")
+
+    # Project changes in new income statement items
+    for column in income_details.index:
+        if column != 'Stock Name':
+            current_value = pd.to_numeric(income_details[column], errors='coerce')
+            if pd.notna(current_value):
+                if method == 'Dynamic':
+                    if column in event_details.index:
+                        correlation_factor = event_details[column] if column in event_details.index else 0
+                        projected_value = current_value + (current_value * correlation_factor * (expected_rate - latest_event_value) / 100)
+                    else:
+                        projected_value = current_value * (1 + (expected_rate - latest_event_value) / 100)
+                    change = projected_value - current_value
+                else:  # Simple
+                    projected_value = current_value * (1 + expected_rate / 100)
+                    change = expected_rate
+
+                new_row = pd.DataFrame([{
+                    'Parameter': column,
+                    'Current Value': current_value,
+                    'Projected Value': projected_value,
+                    'Change': change
+                }])
+                projections = pd.concat([projections, new_row], ignore_index=True)
 
     # Include the new columns for June 2024 in the projections
     new_columns = [
@@ -166,26 +185,18 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
 
     for col in new_columns:
         if col in income_details.index:
-            current_value = pd.to_numeric(income_details[col], errors='coerce')
-            if pd.notna(current_value):
-                if method == 'Dynamic':
-                    projected_value = current_value * (1 + (expected_rate - latest_event_value) / 100)
-                else:  # Simple
-                    projected_value = current_value * (1 + expected_rate / 100)
-
+            projected_value = pd.to_numeric(income_details[col], errors='coerce')
+            if pd.notna(projected_value):
                 new_row = pd.DataFrame([{
                     'Parameter': col,
-                    'Current Value': current_value,
+                    'Current Value': 'N/A',
                     'Projected Value': projected_value,
-                    'Change': expected_rate
+                    'Change': 'N/A'
                 }])
                 projections = pd.concat([projections, new_row], ignore_index=True)
 
-    # Display the explanation for the chosen calculation method
-    st.write(f"**Explanation of Calculation Method:** {explanation}")
-
     return projections
 
-# Check if user has entered a stock symbol and selected an event
-if stock_name and event_type:
+# Run the stock details fetch
+if stock_name:
     get_stock_details(stock_name, event_type, calculation_method)
