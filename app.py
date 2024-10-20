@@ -121,6 +121,7 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
         latest_close_price = pd.to_numeric(event_details['Latest Close Price'], errors='coerce')
 
         if method == 'Dynamic':
+            # Calculate dynamic change based on event coefficient
             rate_change = expected_rate - latest_event_value
             price_change = event_details['Event Coefficient'] * rate_change
             projected_price = latest_close_price + price_change
@@ -128,7 +129,7 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
         else:  # Simple
             price_change = latest_close_price * (expected_rate / 100)
             projected_price = latest_close_price + price_change
-            change = expected_rate
+            change = price_change
 
         new_row = pd.DataFrame([{
             'Parameter': 'Projected Stock Price',
@@ -145,18 +146,19 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
             if pd.notna(current_value):
                 if method == 'Dynamic':
                     if 'Income Coefficient' in event_details.index:
-                        change = current_value * (expected_rate / 100) * event_details['Income Coefficient']
-                        projected_value = current_value + change
+                        income_change = current_value * (expected_rate / 100) * event_details['Income Coefficient']
+                        projected_value = current_value + income_change
                     else:
-                        projected_value = current_value
+                        projected_value = current_value  # No change if no coefficient
                 else:  # Simple
                     projected_value = current_value + (current_value * (expected_rate / 100))
                 
+                change = projected_value - current_value  # Change is the difference
                 new_row = pd.DataFrame([{
                     'Parameter': column,
                     'Current Value': current_value,
                     'Projected Value': projected_value,
-                    'Change': projected_value - current_value
+                    'Change': change
                 }])
                 projections = pd.concat([projections, new_row], ignore_index=True)
 
