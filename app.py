@@ -1,26 +1,18 @@
 import pandas as pd
 import streamlit as st
+import os
 
-# Function to load Excel data with error handling
-def load_excel_data(file_name):
-    try:
-        return pd.read_excel(file_name)
-    except FileNotFoundError:
-        st.error(f"File not found: {file_name}. Please ensure the file is in the correct directory.")
-        return None
-    except Exception as e:
-        st.error(f"An error occurred while loading the file: {str(e)}")
-        return None
+# Display the current working directory
+st.write("Current Working Directory:", os.getcwd())
 
 # Load the data from Excel files
-inflation_data = load_excel_data('Inflation_event_stock_analysis_resultsOct.xlsx')
-income_data = load_excel_data('Inflation_IncomeStatement_correlation_results.xlsx')
-interest_rate_data = load_excel_data('interestrate_event_stock_analysis_results.xlsx')
-interest_rate_income_data = load_excel_data('interestrate_IncomeStatement_correlation_results.xlsx')
-
-# Check if all data is loaded successfully
-if inflation_data is None or income_data is None or interest_rate_data is None or interest_rate_income_data is None:
-    st.stop()
+try:
+    inflation_data = pd.read_excel('Inflation_event_stock_analysis_resultsOct.xlsx')
+    income_data = pd.read_excel('Inflation_IncomeStatement_correlation_results.xlsx')
+    interest_rate_data = pd.read_excel('interestrate_event_stock_analysis_results.xlsx')
+    interest_rate_income_data = pd.read_excel('interestrate_IncomeStatement_correlation_results.xlsx')
+except FileNotFoundError as e:
+    st.error(f"File not found: {e.filename}. Please ensure the file is in the correct directory.")
 
 # Set up Streamlit app
 st.title('Stock Analysis Based on Economic Events')
