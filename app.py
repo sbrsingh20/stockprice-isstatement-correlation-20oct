@@ -83,21 +83,35 @@ def interpret_interest_rate_data(details):
 def interpret_income_data(details):
     st.write("### Interpretation of Income Statement Data")
     
+    metrics = {
+        'Total Revenue/Income': "Government initiatives spur growth. Increased consumer spending drives revenue. Market saturation limits revenue growth.",
+        'Total Operating Expense': "Efficient cost management aligns with growth. Inflation impacts costs but is manageable.",
+        'Operating Income/Profit': "High correlation indicates robust margins. Growth strategies enhance profitability.",
+        'EBITDA': "Strong operational efficiency. Positive cash flow trends support growth.",
+        'EBIT': "Reflects operational excellence. Investment in innovation boosts EBIT.",
+        'Income/Profit Before Tax': "Tax incentives and growth correlate. Profitability rises with economic conditions.",
+        'Net Income From Continuing Operation': "Sustained growth reflects stability. Positive shifts in economic policies boost net income.",
+        'Net Income': "Economic reforms boost profitability. Strong demand fuels net income growth.",
+        'Net Income Applicable to Common Share': "High returns drive investor confidence. Shareholder value grows with profitability.",
+        'EPS (Earning Per Share)': "Strong EPS growth attracts investors. Moderate growth signals a healthy business."
+    }
+
     interpretations = []
 
-    if 'Average Operating Margin' in details.index:
-        average_operating_margin = details['Average Operating Margin']
-        if average_operating_margin > 0.2:
-            interpretations.append("**High Operating Margin:** Indicates strong management effectiveness.")
-        elif average_operating_margin < 0.1:
-            interpretations.append("**Low Operating Margin:** Reflects risk in profitability.")
-
-    if 'Total Revenue/Income' in details.index:
-        total_revenue = details['Total Revenue/Income']
-        if total_revenue > 1000000:  # Example threshold
-            interpretations.append("**Strong Revenue Growth:** Indicates healthy market presence.")
-        elif total_revenue < 500000:
-            interpretations.append("**Weak Revenue:** Suggests potential issues in sales or market reach.")
+    for metric, interpretation in metrics.items():
+        if metric in details.index:
+            correlation_value = pd.to_numeric(details[metric], errors='coerce')
+            if pd.notna(correlation_value):
+                if 0.80 <= correlation_value <= 1.00:
+                    interpretations.append(f"**{metric}:** Very Good - {interpretation}")
+                elif 0.60 <= correlation_value < 0.80:
+                    interpretations.append(f"**{metric}:** Good - {interpretation}")
+                elif 0.40 <= correlation_value < 0.60:
+                    interpretations.append(f"**{metric}:** Neutral - {interpretation}")
+                elif 0.20 <= correlation_value < 0.40:
+                    interpretations.append(f"**{metric}:** Bad - {interpretation}")
+                elif 0.00 <= correlation_value < 0.20:
+                    interpretations.append(f"**{metric}:** Very Bad - {interpretation}")
 
     # Display all interpretations
     if interpretations:
@@ -105,21 +119,6 @@ def interpret_income_data(details):
             st.write(interpretation)
     else:
         st.warning("No specific interpretations found for income statement data.")
-
-# Function for correlation interpretation
-def correlation_interpretation(value):
-    if 0.80 <= value <= 1.00:
-        return "Very Good: Indicates a strong positive relationship. Economic events significantly influence these income items."
-    elif 0.60 <= value < 0.80:
-        return "Good: Reflects a moderate to strong correlation. Economic growth and consumption trends positively impact revenue."
-    elif 0.40 <= value < 0.60:
-        return "Neutral: Shows a moderate correlation. Income items are somewhat influenced by economic events."
-    elif 0.20 <= value < 0.40:
-        return "Bad: Indicates a weak correlation. Economic events have limited impact on these income items."
-    elif 0.00 <= value < 0.20:
-        return "Very Bad: Shows little to no correlation. Economic events do not significantly affect income items."
-    else:
-        return "No valid correlation score."
 
 # Function to generate projections based on expected rate and calculation method
 def generate_projections(event_details, income_details, expected_rate, event_type, method):
@@ -150,41 +149,6 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
         projections = pd.concat([projections, new_row], ignore_index=True)
     else:
         st.warning("Stock Price data not available in event details.")
-
-    # Project changes in new income statement items
-    for column in income_details.index:
-        if column != 'Stock Name':
-            current_value = pd.to_numeric(income_details[column], errors='coerce')
-            if pd.notna(current_value):
-                if method == 'Dynamic':
-                    if column in event_details.index:
-                        correlation_factor = event_details[column] if column in event_details.index else 0
-                        projected_value = current_value + (current_value * correlation_factor * (expected_rate - latest_event_value) / 100)
-                    else:
-                        projected_value = current_value * (1 + (expected_rate - latest_event_value) / 100)
-                    change = projected_value - current_value
-                else:  # Simple
-                    projected_value = current_value * (1 + expected_rate / 100)
-                    change = projected_value - current_value
-
-                new_row = pd.DataFrame([{
-                    'Parameter': column,
-                    'Current Value': current_value,
-                    'Projected Value': projected_value,
-                    'Change': change
-                }])
-                projections = pd.concat([projections, new_row], ignore_index=True)
-
-                # Correlation evaluation
-                correlation_score = event_details.get(column, None)  # Adjust based on your data structure
-                if correlation_score is not None:
-                    interpretation = correlation_interpretation(correlation_score)
-                    projections = pd.concat([projections, pd.DataFrame([{
-                        'Parameter': f'Correlation Interpretation for {column}',
-                        'Current Value': '',
-                        'Projected Value': '',
-                        'Change': interpretation
-                    }])], ignore_index=True)
 
     # Include the new columns for June 2024 in the projections
     new_columns = [
