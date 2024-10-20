@@ -13,6 +13,7 @@ try:
     interest_rate_income_data = pd.read_excel('interestrate_IncomeStatement_correlation_results.xlsx')
 except FileNotFoundError as e:
     st.error(f"File not found: {e.filename}. Please ensure the file is in the correct directory.")
+    st.stop()
 
 # Set up Streamlit app
 st.title('Stock Analysis Based on Economic Events')
