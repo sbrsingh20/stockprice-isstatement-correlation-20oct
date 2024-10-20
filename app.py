@@ -4,7 +4,7 @@ import streamlit as st
 # Load the data from Excel files
 inflation_data = pd.read_excel('Inflation_event_stock_analysis_resultsOct.xlsx')
 income_data = pd.read_excel('Inflation_IncomeStatement_correlation_results.xlsx')
-interest_rate_data = pd.read_excel('interestrate_event_stock_analysis_resultsOct.xlsx')
+interest_rate_data = pd.read_excel('interestrate_event_stock_analysis_results.xlsx')
 interest_rate_income_data = pd.read_excel('interestrate_IncomeStatement_correlation_results.xlsx')
 
 # Set up Streamlit app
@@ -114,15 +114,14 @@ def interpret_correlation(correlation):
 
 # Function to generate projections based on expected rate and calculation method
 def generate_projections(event_details, income_details, expected_rate, event_type, method):
-    latest_event_value = pd.to_numeric(income_details.get('Latest Event Value', 0), errors='coerce')
+    latest_event_value = pd.to_numeric(income_details['Latest Event Value'], errors='coerce')
     projections = pd.DataFrame(columns=['Parameter', 'Current Value', 'Projected Value', 'Change'])
 
     if 'Latest Close Price' in event_details.index:
         latest_close_price = pd.to_numeric(event_details['Latest Close Price'], errors='coerce')
+        rate_change = expected_rate - latest_event_value
 
         if method == 'Dynamic':
-            # Calculate dynamic change based on event coefficient
-            rate_change = expected_rate - latest_event_value
             price_change = event_details['Event Coefficient'] * rate_change
             projected_price = latest_close_price + price_change
             change = price_change
@@ -139,7 +138,6 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
         }])
         projections = pd.concat([projections, new_row], ignore_index=True)
 
-    # Project changes in income statement items
     for column in income_details.index:
         if column != 'Stock Name':
             current_value = pd.to_numeric(income_details[column], errors='coerce')
@@ -153,9 +151,38 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
                 else:  # Simple
                     projected_value = current_value + (current_value * (expected_rate / 100))
                 
-                change = projected_value - current_value  # Change is the difference
+                change = projected_value - current_value
                 new_row = pd.DataFrame([{
                     'Parameter': column,
+                    'Current Value': current_value,
+                    'Projected Value': projected_value,
+                    'Change': change
+                }])
+                projections = pd.concat([projections, new_row], ignore_index=True)
+
+    # Include the new columns for projections based on expected rate
+    new_columns = [
+        'June 2024 Total Revenue/Income', 
+        'June 2024 Total Operating Expense', 
+        'June 2024 Operating Income/Profit', 
+        'June 2024 EBITDA', 
+        'June 2024 EBIT', 
+        'June 2024 Income/Profit Before Tax', 
+        'June 2024 Net Income From Continuing Operation', 
+        'June 2024 Net Income', 
+        'June 2024 Net Income Applicable to Common Share', 
+        'June 2024 EPS (Earning Per Share)'
+    ]
+
+    for col in new_columns:
+        if col in income_details.index:
+            current_value = pd.to_numeric(income_details[col], errors='coerce')
+            if pd.notna(current_value):
+                projected_value = current_value * (1 + expected_rate / 100)  # Assuming a percentage change
+                change = projected_value - current_value
+                
+                new_row = pd.DataFrame([{
+                    'Parameter': col,
                     'Current Value': current_value,
                     'Projected Value': projected_value,
                     'Change': change
@@ -167,4 +194,3 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
 # Check if user has entered a stock symbol and selected an event
 if stock_name and event_type:
     get_stock_details(stock_name, event_type, calculation_method)
-
