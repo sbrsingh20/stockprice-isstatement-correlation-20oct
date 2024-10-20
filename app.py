@@ -82,12 +82,29 @@ def interpret_interest_rate_data(details):
 # Function to interpret income data
 def interpret_income_data(details):
     st.write("### Interpretation of Income Statement Data")
+    
+    interpretations = []
+
     if 'Average Operating Margin' in details.index:
         average_operating_margin = details['Average Operating Margin']
         if average_operating_margin > 0.2:
-            st.write("**High Operating Margin:** Indicates strong management effectiveness.")
+            interpretations.append("**High Operating Margin:** Indicates strong management effectiveness.")
         elif average_operating_margin < 0.1:
-            st.write("**Low Operating Margin:** Reflects risk in profitability.")
+            interpretations.append("**Low Operating Margin:** Reflects risk in profitability.")
+
+    if 'Total Revenue/Income' in details.index:
+        total_revenue = details['Total Revenue/Income']
+        if total_revenue > 1000000:  # Example threshold
+            interpretations.append("**Strong Revenue Growth:** Indicates healthy market presence.")
+        elif total_revenue < 500000:
+            interpretations.append("**Weak Revenue:** Suggests potential issues in sales or market reach.")
+
+    # Display all interpretations
+    if interpretations:
+        for interpretation in interpretations:
+            st.write(interpretation)
+    else:
+        st.warning("No specific interpretations found for income statement data.")
 
 # Function for correlation interpretation
 def correlation_interpretation(value):
@@ -196,7 +213,7 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
                     'Parameter': col,
                     'Current Value': current_value,
                     'Projected Value': projected_value,
-                    'Change': projected_value - current_value
+                    'Change': expected_rate
                 }])
                 projections = pd.concat([projections, new_row], ignore_index=True)
 
