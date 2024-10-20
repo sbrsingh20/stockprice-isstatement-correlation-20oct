@@ -49,15 +49,9 @@ def get_stock_details(stock_symbol, event_type, method):
 
         # Additional interpretations based on conditions
         if event_type == 'Inflation':
-            if 'Event Coefficient' in event_details.index:
-                interpret_inflation_data(event_details)
-            else:
-                st.warning('Event Coefficient not found in inflation event data.')
+            interpret_inflation_data(event_details)
         else:
-            if 'Event Coefficient' in event_details.index:
-                interpret_interest_rate_data(event_details)
-            else:
-                st.warning('Event Coefficient not found in interest rate event data.')
+            interpret_interest_rate_data(event_details)
 
         interpret_income_data(income_details)
     else:
@@ -94,6 +88,21 @@ def interpret_income_data(details):
             st.write("**High Operating Margin:** Indicates strong management effectiveness.")
         elif average_operating_margin < 0.1:
             st.write("**Low Operating Margin:** Reflects risk in profitability.")
+
+# Function for correlation interpretation
+def correlation_interpretation(value):
+    if 0.80 <= value <= 1.00:
+        return "Very Good: Indicates a strong positive relationship. Economic events significantly influence these income items."
+    elif 0.60 <= value < 0.80:
+        return "Good: Reflects a moderate to strong correlation. Economic growth and consumption trends positively impact revenue."
+    elif 0.40 <= value < 0.60:
+        return "Neutral: Shows a moderate correlation. Income items are somewhat influenced by economic events."
+    elif 0.20 <= value < 0.40:
+        return "Bad: Indicates a weak correlation. Economic events have limited impact on these income items."
+    elif 0.00 <= value < 0.20:
+        return "Very Bad: Shows little to no correlation. Economic events do not significantly affect income items."
+    else:
+        return "No valid correlation score."
 
 # Function to generate projections based on expected rate and calculation method
 def generate_projections(event_details, income_details, expected_rate, event_type, method):
@@ -148,6 +157,17 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
                     'Change': change
                 }])
                 projections = pd.concat([projections, new_row], ignore_index=True)
+
+                # Correlation evaluation
+                correlation_score = event_details.get(column, None)  # Adjust based on your data
+                if correlation_score is not None:
+                    interpretation = correlation_interpretation(correlation_score)
+                    projections = pd.concat([projections, pd.DataFrame([{
+                        'Parameter': f'Correlation Interpretation for {column}',
+                        'Current Value': '',
+                        'Projected Value': '',
+                        'Change': interpretation
+                    }])], ignore_index=True)
 
     # Include the new columns for June 2024 in the projections
     new_columns = [
