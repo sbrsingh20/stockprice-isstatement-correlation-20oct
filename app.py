@@ -47,122 +47,70 @@ def get_stock_details(stock_symbol, event_type, method):
         st.write(f"### Projected Changes Based on Expected {event_type}")
         st.dataframe(projections)
 
-        # Interpret the data
-        interpret_event_data(event_details, event_type)
-        interpret_income_data(income_details, projections)
+        # Interpretations
+        interpret_data(event_details, income_details, event_type)
     else:
         st.warning('Stock symbol not found in the data. Please check the symbol and try again.')
 
-# Function to interpret event data
-def interpret_event_data(details, event_type):
-    st.write("### Interpretation of Event Data")
+# Function to interpret data
+def interpret_data(event_details, income_details, event_type):
+    if event_type == 'Inflation':
+        interpret_inflation_data(event_details)
+    else:
+        interpret_interest_rate_data(event_details)
+
+    interpret_income_data(income_details)
+
+# Function to interpret inflation data
+def interpret_inflation_data(details):
+    st.write("### Interpretation of Inflation Event Data")
     if 'Event Coefficient' in details.index:
         if details['Event Coefficient'] < -1:
-            st.write(f"**1% Increase in {event_type}:** Stock price decreases significantly. Increase portfolio risk.")
+            st.write("**1% Increase in Inflation:** Stock price decreases significantly. Increase portfolio risk.")
         elif details['Event Coefficient'] > 1:
-            st.write(f"**1% Increase in {event_type}:** Stock price increases, benefiting from {event_type.lower()}.")
+            st.write("**1% Increase in Inflation:** Stock price increases, benefiting from inflation.")
+
+# Function to interpret interest rate data
+def interpret_interest_rate_data(details):
+    st.write("### Interpretation of Interest Rate Event Data")
+    if 'Event Coefficient' in details.index:
+        if details['Event Coefficient'] < -1:
+            st.write("**1% Increase in Interest Rate:** Stock price decreases significantly. Increase portfolio risk.")
+        elif details['Event Coefficient'] > 1:
+            st.write("**1% Increase in Interest Rate:** Stock price increases, benefiting from interest hikes.")
 
 # Function to interpret income data
-def interpret_income_data(details, projections):
+def interpret_income_data(details):
     st.write("### Interpretation of Income Statement Data")
     
-    correlation_ranges = {
-        'Very Good': (0.80, 1.00),
-        'Good': (0.60, 0.79),
-        'Neutral': (0.40, 0.59),
-        'Bad': (0.20, 0.39),
-        'Very Bad': (0.00, 0.19),
+    correlations = {
+        'Total Revenue/Income': details.get('Total Revenue/Income Correlation', 0),
+        'Total Operating Expense': details.get('Total Operating Expense Correlation', 0),
+        'Operating Income/Profit': details.get('Operating Income/Profit Correlation', 0),
+        'EBITDA': details.get('EBITDA Correlation', 0),
+        'EBIT': details.get('EBIT Correlation', 0),
+        'Income/Profit Before Tax': details.get('Income/Profit Before Tax Correlation', 0),
+        'Net Income From Continuing Operation': details.get('Net Income From Continuing Operation Correlation', 0),
+        'Net Income': details.get('Net Income Correlation', 0),
+        'Net Income Applicable to Common Share': details.get('Net Income Applicable to Common Share Correlation', 0),
+        'EPS (Earning Per Share)': details.get('EPS Correlation', 0),
     }
 
-    for col in projections['Parameter']:
-        if col in details.index:
-            current_value = pd.to_numeric(details[col], errors='coerce')
-            projected_value = pd.to_numeric(projections[projections['Parameter'] == col]['Projected Value'], errors='coerce').values[0]
-            
-            # Sample interpretation based on correlation (replace with actual correlation calculation if available)
-            correlation = (projected_value - current_value) / current_value  # Placeholder for correlation
-            
-            for key, (lower, upper) in correlation_ranges.items():
-                if lower <= correlation < upper:
-                    st.write(f"**{col}:** {key} correlation with projected changes.")
-                    st.write(get_detailed_interpretation(col, key))
-                    break
+    for metric, correlation in correlations.items():
+        interpretation = interpret_correlation(correlation)
+        st.write(f"**{metric}:** {interpretation}")
 
-# Function to get detailed interpretation based on correlation
-def get_detailed_interpretation(metric, range_label):
-    interpretations = {
-        'Total Revenue/Income': {
-            'Very Good': "Government initiatives spur growth.",
-            'Good': "Increased consumer spending drives revenue.",
-            'Neutral': "Market saturation limits revenue growth.",
-            'Bad': "Economic downturn affects sales.",
-            'Very Bad': "Structural issues lead to revenue decline."
-        },
-        'Total Operating Expense': {
-            'Very Good': "Efficient cost management aligns with growth.",
-            'Good': "Inflation impacts costs but is manageable.",
-            'Neutral': "Cost controls vary across sectors.",
-            'Bad': "Rising raw material costs squeeze margins.",
-            'Very Bad': "Inefficiency leads to ballooning costs."
-        },
-        'Operating Income/Profit': {
-            'Very Good': "High correlation indicates robust margins.",
-            'Good': "Growth strategies enhance profitability.",
-            'Neutral': "Margins affected by competition.",
-            'Bad': "High fixed costs reduce operating income.",
-            'Very Bad': "Non-competitive sectors suffer losses."
-        },
-        'EBITDA': {
-            'Very Good': "Strong operational efficiency.",
-            'Good': "Positive cash flow trends support growth.",
-            'Neutral': "Limited growth due to external factors.",
-            'Bad': "Declining sectors struggle with EBITDA.",
-            'Very Bad': "Poor management leads to negative EBITDA."
-        },
-        'EBIT': {
-            'Very Good': "Reflects operational excellence.",
-            'Good': "Investment in innovation boosts EBIT.",
-            'Neutral': "Mixed results due to competition.",
-            'Bad': "Regulatory pressures impact EBIT margins.",
-            'Very Bad': "Companies unable to adapt face EBIT losses."
-        },
-        'Income/Profit Before Tax': {
-            'Very Good': "Tax incentives and growth correlate.",
-            'Good': "Profitability rises with economic conditions.",
-            'Neutral': "Varying tax policies create unpredictability.",
-            'Bad': "Unfavorable tax conditions reduce profits.",
-            'Very Bad': "Structural inefficiencies lead to losses."
-        },
-        'Net Income From Continuing Operation': {
-            'Very Good': "Sustained growth reflects stability.",
-            'Good': "Positive shifts in economic policies boost net income.",
-            'Neutral': "Fluctuations in income stability.",
-            'Bad': "High debt levels hamper net income.",
-            'Very Bad': "Companies may face losses in core operations."
-        },
-        'Net Income': {
-            'Very Good': "Economic reforms boost profitability.",
-            'Good': "Strong demand fuels net income growth.",
-            'Neutral': "External factors affect overall profitability.",
-            'Bad': "High competition diminishes net income.",
-            'Very Bad': "Losses indicate critical issues in operations."
-        },
-        'Net Income Applicable to Common Share': {
-            'Very Good': "High returns drive investor confidence.",
-            'Good': "Shareholder value grows with profitability.",
-            'Neutral': "Fluctuations in earnings affect share prices.",
-            'Bad': "Weak performance leads to dividend cuts.",
-            'Very Bad': "Poor performance reflects systemic issues."
-        },
-        'EPS (Earning Per Share)': {
-            'Very Good': "Strong EPS growth attracts investors.",
-            'Good': "Moderate growth signals healthy business.",
-            'Neutral': "EPS stability amidst market fluctuations.",
-            'Bad': "Low EPS growth raises concerns.",
-            'Very Bad': "Negative EPS reflects deep-rooted issues."
-        }
-    }
-    return interpretations.get(metric, {}).get(range_label, "No interpretation available.")
+def interpret_correlation(correlation):
+    if correlation > 0.8:
+        return "Very Good: Indicates a strong positive relationship. Economic events significantly influence these income items."
+    elif correlation > 0.6:
+        return "Good: Reflects a moderate to strong correlation. Economic growth impacts revenue positively."
+    elif correlation > 0.4:
+        return "Neutral: Shows a moderate correlation. Other factors may play a larger role."
+    elif correlation > 0.2:
+        return "Bad: Indicates a weak correlation. Companies might need to re-evaluate their strategies."
+    else:
+        return "Very Bad: Shows little to no correlation. Economic events do not significantly affect income items."
 
 # Function to generate projections based on expected rate and calculation method
 def generate_projections(event_details, income_details, expected_rate, event_type, method):
@@ -177,12 +125,10 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
             price_change = event_details['Event Coefficient'] * rate_change
             projected_price = latest_close_price + price_change
             change = price_change
-            explanation = "Dynamic calculation considers the event coefficient and rate change."
         else:  # Simple
             price_change = latest_close_price * (expected_rate / 100)
             projected_price = latest_close_price + price_change
             change = expected_rate
-            explanation = "Simple calculation uses the expected rate directly."
 
         new_row = pd.DataFrame([{
             'Parameter': 'Projected Stock Price',
@@ -191,10 +137,8 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
             'Change': change
         }])
         projections = pd.concat([projections, new_row], ignore_index=True)
-    else:
-        st.warning("Stock Price data not available in event details.")
 
-    # Project changes in new income statement items
+    # Project changes in income statement items
     for column in income_details.index:
         if column != 'Stock Name':
             current_value = pd.to_numeric(income_details[column], errors='coerce')
@@ -208,15 +152,17 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
                 else:  # Simple
                     projected_value = current_value + (current_value * (expected_rate / 100))
                 
-                projections = projections.append({
+                new_row = pd.DataFrame([{
                     'Parameter': column,
                     'Current Value': current_value,
                     'Projected Value': projected_value,
                     'Change': projected_value - current_value
-                }, ignore_index=True)
+                }])
+                projections = pd.concat([projections, new_row], ignore_index=True)
 
     return projections
 
-# Run the app
-if __name__ == '__main__':
+# Check if user has entered a stock symbol and selected an event
+if stock_name and event_type:
     get_stock_details(stock_name, event_type, calculation_method)
+
