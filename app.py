@@ -51,6 +51,7 @@ def get_stock_details(stock_symbol, event_type, method):
         interpret_inflation_data(event_details)
         interpret_interest_rate_data(event_details)
         interpret_income_data(income_details)
+
     else:
         st.warning('Stock symbol not found in the data. Please check the symbol and try again.')
 
@@ -104,16 +105,19 @@ def interpret_income_data(details):
     for metric, description in metrics.items():
         if metric in details.index:
             correlation_value = details[metric]
+            interpretation = ""
             if correlation_value >= 0.80:
-                st.write(f"**{metric}:** {description} ({correlation_ranges['Very Good (0.80 - 1.00)']})")
+                interpretation = f"**{metric}:** {description} ({correlation_ranges['Very Good (0.80 - 1.00)']})"
             elif correlation_value >= 0.60:
-                st.write(f"**{metric}:** {description} ({correlation_ranges['Good (0.60 - 0.79)']})")
+                interpretation = f"**{metric}:** {description} ({correlation_ranges['Good (0.60 - 0.79)']})"
             elif correlation_value >= 0.40:
-                st.write(f"**{metric}:** {description} ({correlation_ranges['Neutral (0.40 - 0.59)']})")
+                interpretation = f"**{metric}:** {description} ({correlation_ranges['Neutral (0.40 - 0.59)']})"
             elif correlation_value >= 0.20:
-                st.write(f"**{metric}:** {description} ({correlation_ranges['Bad (0.20 - 0.39)']})")
+                interpretation = f"**{metric}:** {description} ({correlation_ranges['Bad (0.20 - 0.39)']})"
             else:
-                st.write(f"**{metric}:** {description} ({correlation_ranges['Very Bad (0.00 - 0.19)']})")
+                interpretation = f"**{metric}:** {description} ({correlation_ranges['Very Bad (0.00 - 0.19)']})"
+
+            st.write(interpretation)
 
 # Function to generate projections based on expected rate and calculation method
 def generate_projections(event_details, income_details, expected_rate, event_type, method):
@@ -166,32 +170,6 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
                     'Current Value': current_value,
                     'Projected Value': projected_value,
                     'Change': change
-                }])
-                projections = pd.concat([projections, new_row], ignore_index=True)
-
-    # Include the new columns for June 2024 in the projections
-    new_columns = [
-        'June 2024 Total Revenue/Income', 
-        'June 2024 Total Operating Expense', 
-        'June 2024 Operating Income/Profit', 
-        'June 2024 EBITDA', 
-        'June 2024 EBIT', 
-        'June 2024 Income/Profit Before Tax', 
-        'June 2024 Net Income From Continuing Operation', 
-        'June 2024 Net Income', 
-        'June 2024 Net Income Applicable to Common Share', 
-        'June 2024 EPS (Earning Per Share)'
-    ]
-
-    for col in new_columns:
-        if col in income_details.index:
-            projected_value = pd.to_numeric(income_details[col], errors='coerce')
-            if pd.notna(projected_value):
-                new_row = pd.DataFrame([{
-                    'Parameter': col,
-                    'Current Value': 'N/A',
-                    'Projected Value': projected_value,
-                    'Change': 'N/A'
                 }])
                 projections = pd.concat([projections, new_row], ignore_index=True)
 
