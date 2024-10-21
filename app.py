@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import os
 
 # Load the data from Excel files
 inflation_data = pd.read_excel('Inflation_event_stock_analysis_resultsOct.xlsx')
@@ -31,7 +32,7 @@ def get_stock_details(stock_symbol, event_type, method):
         income_details = income_row.iloc[0]
 
         st.subheader(f'Details for {stock_symbol}')
-        
+
         # Display event data
         st.write(f"### {event_type} Event Data")
         st.write(event_row)
@@ -40,9 +41,18 @@ def get_stock_details(stock_symbol, event_type, method):
         st.write("### Income Statement Data")
         st.write(income_row)
 
+        # Load additional income statement data from the 'incomestatement' folder
+        income_statement_file = f'incomestatement/{stock_symbol}_income_statement.xlsx'
+        if os.path.exists(income_statement_file):
+            income_statement_data = pd.read_excel(income_statement_file)
+            st.write("### Detailed Income Statement")
+            st.dataframe(income_statement_data)
+        else:
+            st.warning(f'Income statement data for {stock_symbol} not found.')
+
         # Generate projections based on expected rate
         projections = generate_projections(event_details, income_details, expected_rate, event_type, method)
-        
+
         # Display projections
         st.write(f"### Projected Changes Based on Expected {event_type}")
         st.dataframe(projections)
@@ -151,15 +161,15 @@ def generate_projections(event_details, income_details, expected_rate, event_typ
 
     # Include the new columns for June 2024 in the projections
     new_columns = [
-        'June 2024 Total Revenue/Income', 
-        'June 2024 Total Operating Expense', 
-        'June 2024 Operating Income/Profit', 
-        'June 2024 EBITDA', 
-        'June 2024 EBIT', 
-        'June 2024 Income/Profit Before Tax', 
-        'June 2024 Net Income From Continuing Operation', 
-        'June 2024 Net Income', 
-        'June 2024 Net Income Applicable to Common Share', 
+        'June 2024 Total Revenue/Income',
+        'June 2024 Total Operating Expense',
+        'June 2024 Operating Income/Profit',
+        'June 2024 EBITDA',
+        'June 2024 EBIT',
+        'June 2024 Income/Profit Before Tax',
+        'June 2024 Net Income From Continuing Operation',
+        'June 2024 Net Income',
+        'June 2024 Net Income Applicable to Common Share',
         'June 2024 EPS (Earning Per Share)'
     ]
 
