@@ -37,12 +37,8 @@ def get_stock_details(stock_symbol, event_type, method):
         st.write(f"### {event_type} Event Data")
         st.write(event_row)
 
-        # Display income statement data
-        st.write("### Income Statement Data")
-        st.write(income_row)
-
         # Load additional income statement data from the 'incomestatement' folder
-        income_statement_file = f'incomestatement/{stock_symbol}.xlsx'
+        income_statement_file = f'incomestatement/{stock_symbol}.xlsx'  # Correct file naming convention
         if os.path.exists(income_statement_file):
             income_statement_data = pd.read_excel(income_statement_file)
             st.write("### Detailed Income Statement")
