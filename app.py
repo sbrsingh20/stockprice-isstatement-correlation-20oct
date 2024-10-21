@@ -42,7 +42,7 @@ def get_stock_details(stock_symbol, event_type, method):
         st.write(income_row)
 
         # Load additional income statement data from the 'incomestatement' folder
-        income_statement_file = f'incomestatement/{stock_symbol}_income_statement.xlsx'
+        income_statement_file = f'incomestatement/{stock_symbol}.xlsx'
         if os.path.exists(income_statement_file):
             income_statement_data = pd.read_excel(income_statement_file)
             st.write("### Detailed Income Statement")
