@@ -26,23 +26,29 @@ def get_stock_details(stock_symbol, event_type, method):
     else:  # Interest Rate
         event_row = interest_rate_data[interest_rate_data['Symbol'] == stock_symbol]
         income_row = interest_rate_income_data[interest_rate_income_data['Stock Name'] == stock_symbol]
-    
+
     if not event_row.empty and not income_row.empty:
         event_details = event_row.iloc[0]
         income_details = income_row.iloc[0]
-        
+
         st.subheader(f'Details for {stock_symbol}')
-        
+
         # Display event data
         st.write(f"### {event_type} Event Data")
         st.write(event_row)
-        
+
         # Display income statement data
         st.write("### Income Statement Data")
         st.write(income_row)
-        
-        # Load and display additional income statement data
-        display_income_statement(stock_symbol)
+
+        # Load additional income statement data from the 'incomestatement' folder
+        income_statement_file = f'incomestatement/{stock_symbol}.csv'
+        if os.path.exists(income_statement_file):
+            income_statement_data = pd.read_excel(income_statement_file)
+            st.write("### Detailed Income Statement")
+            st.dataframe(income_statement_data)
+        else:
+            st.warning(f'Income statement data for {stock_symbol} not found.')
 
         # Generate projections based on expected rate
         projections = generate_projections(event_details, income_details, expected_rate, event_type, method)
@@ -53,23 +59,19 @@ def get_stock_details(stock_symbol, event_type, method):
 
         # Additional interpretations based on conditions
         if event_type == 'Inflation':
-            interpret_inflation_data(event_details)
+            if 'Event Coefficient' in event_details.index:
+                interpret_inflation_data(event_details)
+            else:
+                st.warning('Event Coefficient not found in inflation event data.')
         else:
-            interpret_interest_rate_data(event_details)
+            if 'Event Coefficient' in event_details.index:
+                interpret_interest_rate_data(event_details)
+            else:
+                st.warning('Event Coefficient not found in interest rate event data.')
 
         interpret_income_data(income_details)
     else:
         st.warning('Stock symbol not found in the data. Please check the symbol and try again.')
-
-# Function to display income statement data from the incomestatement folder
-def display_income_statement(stock_symbol):
-    file_path = f'incomestatement/{stock_symbol}.xlsx'
-    if os.path.exists(file_path):
-        income_statement_data = pd.read_excel(file_path)
-        st.write("### Detailed Income Statement")
-        st.dataframe(income_statement_data)
-    else:
-        st.warning(f'Income statement data for {stock_symbol} not found.')
 
 # Function to interpret inflation data
 def interpret_inflation_data(details):
